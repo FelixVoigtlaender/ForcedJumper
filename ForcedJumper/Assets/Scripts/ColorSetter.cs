@@ -19,8 +19,12 @@ public class ColorSetter : MonoBehaviour {
 
         UpdateColor();
     }
+
+
+
     public void UpdateColor(int delta = 0)
     {
-        sprite.color = Color.Lerp(colorStart, colorEnd, health.health / (float)maxHealth);
+        print("Color Changed");
+        sprite.color = Color.Lerp(colorStart, colorEnd, (float)health.health / (float)maxHealth);
     }
 }

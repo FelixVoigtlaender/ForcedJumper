@@ -4,10 +4,13 @@ using UnityEngine;
 
 public class WorldManager : MonoBehaviour {
 
+    public static int modulo = 2;
+
     public GameObject enemyPrefab;
     public GameObject floorPrefab;
     public int chunkHeight;
     public int chunkWidth;
+    public int boxCountHorizontal = 2;
 
     public int nextChunk = 0;
 
@@ -42,19 +45,24 @@ public class WorldManager : MonoBehaviour {
 
     public List<GameObject> GenerateChunk(int yStart)
     {
-        Vector2 topLeft = new Vector2(-chunkWidth / 2 + 0.5f, yStart);
+        float skinWidth = 0.05f;
+        float boxSize = (float)(chunkWidth - skinWidth * 2 * boxCountHorizontal) / (float)boxCountHorizontal;
+        float stepSize = boxSize + skinWidth * 2;
+        Vector2 topLeft = new Vector2(-chunkWidth / 2 + stepSize / 2, yStart);
         List<GameObject> boxes = new List<GameObject>();
-        for(int x = 0; x < chunkWidth; x++)
+        int boxCountVertical = (int)(chunkHeight / stepSize);
+        for(int x = 0; x < boxCountHorizontal; x++)
         {
-            for(int y = 0; y < chunkHeight; y++)
+            for(int y = 0; y < boxCountVertical; y++)
             {
-                Vector2 position = topLeft + new Vector2(x, -y);
+                Vector2 position = topLeft + new Vector2(x, -y) * stepSize;
 
                 if (Random.Range(0, 1f) < 0.5f)
                 {
                     GameObject newBox = Instantiate(enemyPrefab, position, Quaternion.Euler(Vector2.zero));
+                    newBox.transform.localScale = Vector3.one * boxSize;
                     //Health
-                    newBox.GetComponent<Health>().health = Random.Range(0, 5);
+                    newBox.GetComponent<Health>().health = Random.Range(0, modulo);
 
                     boxes.Add(newBox);
                 }
@@ -64,14 +72,17 @@ public class WorldManager : MonoBehaviour {
     }
     public List<GameObject> GenerateTop(int yStart)
     {
-        Vector2 topLeft = new Vector2(-chunkWidth / 2 + 0.5f, yStart);
+        float skinWidth = 0.05f;
+        float boxSize = (float)(chunkWidth - skinWidth*2*boxCountHorizontal) / (float)boxCountHorizontal;
+        float stepSize = boxSize + skinWidth*2;
+        Vector2 topLeft = new Vector2(-chunkWidth / 2 + stepSize/2, yStart);
         List<GameObject> boxes = new List<GameObject>();
-        for (int x = 0; x < chunkWidth; x++)
+        for (int x = 0; x < boxCountHorizontal; x++)
         {
 
-            Vector2 position = topLeft + new Vector2(x, yStart);
+            Vector2 position = topLeft + Vector2.right * stepSize*x;
             GameObject newBox = Instantiate(enemyPrefab, position, Quaternion.Euler(Vector2.zero));
-
+            newBox.transform.localScale = Vector3.one * boxSize;
             boxes.Add(newBox);
 
         }

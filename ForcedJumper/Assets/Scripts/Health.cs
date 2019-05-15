@@ -24,24 +24,21 @@ public class Health : MonoBehaviour {
     {
         while (value < 0)
         {
-            value = 5 + value;
+            value = WorldManager.modulo + value;
         }
-        value = value % 5;
+        value = value % WorldManager.modulo;
         print(value);
-        if (health != value)
-        {
-            if (onDeltaHealth != null)
-                onDeltaHealth(value - health);
-        }
+        bool healthChanged = value != health;
 
 
         health = value;
+        if (healthChanged && onDeltaHealth != null)
+            onDeltaHealth(value - health);
         SetText(health + "");
     }
 
     public void Kill()
     {
-        SetHealth(-1);
         if (onKill!=null)
             onKill();
     }

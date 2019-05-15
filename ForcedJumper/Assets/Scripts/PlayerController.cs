@@ -27,9 +27,12 @@ public class PlayerController : MonoBehaviour {
     public float angleOffset;
     public float bulletSpeed;
 
-    int bullets = 0;
+
+    int bullets = 4;
 
     Vector2 velocity;
+    //UI
+    public RawImage[] bulletHealthSprites; 
 
 
     Health health;
@@ -39,10 +42,22 @@ public class PlayerController : MonoBehaviour {
         instance = this;
         health = GetComponent<Health>();
         health.health = 0;
+        //UI
+        bullets = bulletHealthSprites.Length;
+    }
+
+
+    public void UpdateUI()
+    {
+        for(int i=0;i< bulletHealthSprites.Length;i++)
+        {
+            bulletHealthSprites[i].enabled = i < bullets;
+        }
     }
 
     public void Update()
     {
+
 
         if (Input.GetButtonDown("Fire1") )
         {
@@ -68,8 +83,16 @@ public class PlayerController : MonoBehaviour {
         currentRotation += rotationVel * Time.deltaTime;
         transform.rotation = Quaternion.Euler(Vector3.forward * currentRotation);
         transform.position = velocity * Time.deltaTime + position;
+
+        //UI
+        UpdateUI();
     }
 
+
+    public void SetBullets(int value)
+    {
+        bullets = value;
+    }
 
     public void CheckPhysics()
     {
@@ -78,9 +101,9 @@ public class PlayerController : MonoBehaviour {
         int steps = 2;
         float skinWidth = 0.02f;
         float stepSize = (width - 2 * skinWidth) / steps;
-        List<RaycastHit2D> hits = new List<RaycastHit2D>();
         float shake = 0f;
         //Vertical
+        List<RaycastHit2D> verticalHits = new List<RaycastHit2D>();
         Vector2 left = (width - 2 * skinWidth) / 2 * Vector2.left + (Vector2)transform.position;
         left += (dir.y < 0 ? Vector2.down : Vector2.up) * (width) / 2;
         for (int i = 0; i <= steps; i++)
@@ -88,7 +111,7 @@ public class PlayerController : MonoBehaviour {
             RaycastHit2D hit = Physics2D.Raycast(left + Vector2.right * stepSize * i, Vector2.up * dir.y, Mathf.Abs(velocity.y * Time.deltaTime) , obstacleLayer);
             if (hit)
             {
-                hits.Add(hit);
+                verticalHits.Add(hit);
 
                 velocity.y = dir.y < 0 ? bounceSpeed : -bounceSpeed;
 
@@ -99,6 +122,7 @@ public class PlayerController : MonoBehaviour {
         }
         CameraController.Shake(shake);
         //Horizontal
+        List<RaycastHit2D> horizontalHits = new List<RaycastHit2D>();
         Vector2 bottom = (width - 2 * skinWidth) / 2 * Vector2.down + (Vector2)transform.position;
         bottom += (dir.x * Vector2.right) * (width) / 2;
         for (int i = 0; i <= steps; i++)
@@ -106,24 +130,39 @@ public class PlayerController : MonoBehaviour {
             RaycastHit2D hit = Physics2D.Raycast(bottom + Vector2.up * stepSize * i, Vector2.right * dir.x, Mathf.Abs(velocity.x * Time.deltaTime) , obstacleLayer);
             if (hit)
             {
-                hits.Add(hit);
+                horizontalHits.Add(hit);
                 velocity.x = 0;
             }
         }
 
-        HandleEnemyHits(hits);
+        bool countChanged = false;
+        countChanged = HandleEnemyHits(verticalHits);
+        if (!countChanged)
+        {
+            countChanged = HandleEnemyHits(horizontalHits);
+        }
+
+        /*//Damage: Hit bottom&horizontal but no health -> Damage
+        if (verticalHits.Count > 0 && dir.y < 0 && !countChanged)
+            bullets--;
+        */
+        //Death
+        if (bullets < 0)
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
 
     }
-    public void HandleEnemyHits(List<RaycastHit2D> hits)
+    //Returns if blocks had same health
+    public bool HandleEnemyHits(List<RaycastHit2D> hits, bool canDamage = false)
     {
         bool countChanged = false;
+        bool wrongHit = false;
         foreach (RaycastHit2D hit in hits)
         {
             DestroyManager enemyDes = hit.transform.gameObject.GetComponent<DestroyManager>();
             Health enemyHealth = hit.transform.gameObject.GetComponent<Health>();
-            if (enemyHealth)
+            if (enemyHealth && enemyHealth != health && !countChanged)
             {
-                if (enemyHealth.health == health.health && !countChanged)
+                if (enemyHealth.health == health.health)
                 {
                     enemyHealth.Kill();
                     bullets++;
@@ -131,12 +170,15 @@ public class PlayerController : MonoBehaviour {
                     countChanged = true;
                     health.SetHealth((health.health + 1) % 5);
                 }
-                if (enemyHealth.health < health.health)
+                else
                 {
-                    //enemyHealth.Kill();
+                    wrongHit = true;
                 }
             }
         }
+        bullets = Mathf.Clamp(bullets, 0, bulletHealthSprites.Length);
+
+        return countChanged;
     }
 
     public void Shoot()
